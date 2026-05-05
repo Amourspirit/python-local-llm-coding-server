@@ -7,6 +7,17 @@ wheels/
 *.egg-info
 
 # Virtual environments
-.venv
+.venv/
+venv/
+.envrc
+
+# Environment files
+.env
+!.env.example
 
 storage/
+
+# VS Code
+.vscode/*
+!.vscode/launch.json
+!.vscode/extensions.json

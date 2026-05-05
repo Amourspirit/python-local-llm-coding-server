@@ -1,0 +1,44 @@
+runtime: swiftlm
+title: "Gemma 4 31B (SwiftLM)"
+provider: "openai"
+models:
+  - title: "Gemma 4 31B (SwiftLM)"
+    provider: "openai"
+    model: "mlx-community/gemma-4-31b-it-8bit"
+    apiBase: "http://127.0.0.1:5423/v1"
+    contextLength: 8192
+    completionOptions:
+      maxTokens: 2048
+      temperature: 0.7
+      topP: 1.0
+      presencePenalty: 0.0
+      frequencyPenalty: 0.0
+
+tabAutocompleteModel:
+  title: "Gemma 4 31B"
+  provider: "openai"
+  model: "mlx-community/gemma-4-31b-it-8bit"
+
+binary: "${SWIFT_BIN}"
+server:
+  host: "${SWIFT_HOST}"
+  port: "${SWIFT_PORT}"
+  baseUrl: "${SWIFT_BASE_URL}"
+
+swiftServerArgs:
+  model: "${SWIFT_MODEL}"
+  max-tokens: "${SWIFT_MAX_TOKENS}"
+  ctx-size: "${SWIFT_CTX_SIZE}"
+  temp: "${SWIFT_TEMP}"
+  top-p: "${SWIFT_TOP_P}"
+  top-k: "${SWIFT_TOP_K}"
+  min-p: "${SWIFT_MIN_P}"
+  repeat-penalty: "${SWIFT_REPEAT_PENALTY}"
+  parallel: "${SWIFT_PARALLEL}"
+  mem-limit: "${SWIFT_MEM_LIMIT}"
+  gpu-layers: "${SWIFT_GPU_LAYERS}"
+  prefill-size: "${SWIFT_PREFILL_SIZE}"
+  api-key: "${SWIFT_API_KEY}"
+  thinking: false
+  vision: false
+  audio: false
