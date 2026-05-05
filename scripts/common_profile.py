@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import re
 from pathlib import Path
 from typing import Any
@@ -149,3 +148,36 @@ def resolve_runtime_path(value: str) -> str:
     if path.is_absolute():
         return str(path)
     return str((ROOT_DIR / path).resolve())
+
+
+def validate_speculative_args(args: dict[str, Any], runtime_name: str) -> None:
+    draft_model = args.get("draft-model")
+    num_draft_tokens = args.get("num-draft-tokens")
+
+    if is_blank(draft_model) and not is_blank(num_draft_tokens):
+        raise ValueError(
+            f"{runtime_name} profile sets num-draft-tokens without draft-model."
+        )
+
+    if is_blank(num_draft_tokens):
+        return
+
+    try:
+        parsed = int(str(num_draft_tokens))
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            f"{runtime_name} profile num-draft-tokens must be an integer."
+        ) from exc
+
+    if parsed <= 0:
+        raise ValueError(
+            f"{runtime_name} profile num-draft-tokens must be greater than zero."
+        )
+
+
+def validate_mlx_module(module_name: str) -> None:
+    allowed_modules = {"mlx_vlm.server", "mlx_lm.server"}
+    if module_name not in allowed_modules:
+        raise ValueError(
+            "mlx profile module must be one of: mlx_vlm.server, mlx_lm.server."
+        )

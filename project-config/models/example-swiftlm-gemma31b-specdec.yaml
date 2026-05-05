@@ -1,8 +1,8 @@
 runtime: swiftlm
-title: "Gemma 4 31B (SwiftLM)"
+title: "Gemma 4 31B (SwiftLM Speculative)"
 provider: "openai"
 models:
-  - title: "Gemma 4 31B (SwiftLM)"
+  - title: "Gemma 4 31B (SwiftLM Speculative)"
     provider: "openai"
     model: "mlx-community/gemma-4-31b-it-8bit"
     apiBase: "http://127.0.0.1:5423/v1"
@@ -38,9 +38,10 @@ swiftServerArgs:
   mem-limit: "${SWIFT_MEM_LIMIT}"
   gpu-layers: "${SWIFT_GPU_LAYERS}"
   prefill-size: "${SWIFT_PREFILL_SIZE}"
-  draft-model: "${SWIFT_DRAFT_MODEL}"
-  num-draft-tokens: "${SWIFT_NUM_DRAFT_TOKENS}"
+  draft-model: "mlx-community/gemma-4-E2B-it-4bit"
+  num-draft-tokens: 8
   api-key: "${SWIFT_API_KEY}"
+  turbo-kv: true
   thinking: false
   vision: false
   audio: false

@@ -5,7 +5,15 @@ import sys
 from typing import Any
 
 from common_process import is_pid_running, read_pid, remove_pid, start_process, stop_pid, write_pid
-from common_profile import is_blank, is_truthy, list_profiles, load_profile, state_paths
+from common_profile import (
+    is_blank,
+    is_truthy,
+    list_profiles,
+    load_profile,
+    state_paths,
+    validate_mlx_module,
+    validate_speculative_args,
+)
 
 RUNTIME = "mlx_vlm"
 
@@ -27,6 +35,7 @@ def build_mlx_command(profile: dict[str, Any]) -> list[str]:
         python_exec = sys.executable
 
     module = profile.get("module") or "mlx_vlm.server"
+    validate_mlx_module(str(module))
     command = [python_exec, "-m", str(module)]
 
     server = profile.get("server", {})
@@ -41,6 +50,8 @@ def build_mlx_command(profile: dict[str, Any]) -> list[str]:
     args = profile.get("mlxServerArgs", {})
     if not isinstance(args, dict):
         args = {}
+
+    validate_speculative_args(args, "mlx")
 
     model = args.get("model") or _first_model_value(profile)
     if is_blank(model):

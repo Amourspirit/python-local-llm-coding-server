@@ -1,8 +1,8 @@
 runtime: mlx_vlm
-title: "Gemma 4 31B (mlx_vlm.server)"
+title: "Gemma 4 31B (mlx speculative example)"
 provider: "openai"
 models:
-  - title: "Gemma 4 31B (MLX VLM)"
+  - title: "Gemma 4 31B (MLX Speculative)"
     provider: "openai"
     model: "mlx-community/gemma-4-31b-it-8bit"
     apiBase: "http://127.0.0.1:8066/v1"
@@ -20,7 +20,7 @@ tabAutocompleteModel:
   model: "mlx-community/gemma-4-31b-it-8bit"
 
 pythonExecutable: "python"
-module: "mlx_vlm.server"
+module: "mlx_lm.server"
 server:
   host: "127.0.0.1"
   port: 8066
@@ -28,9 +28,5 @@ server:
 
 mlxServerArgs:
   model: "mlx-community/gemma-4-31b-it-8bit"
-  draft-model: ""
-  num-draft-tokens: ""
-  kv-bits: 3.5
-  kv-quant-scheme: "turboquant"
-  trust-remote-code: false
-  log-level: "INFO"
+  draft-model: "mlx-community/gemma-4-E2B-it-4bit"
+  num-draft-tokens: 8

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import sys
-from pathlib import Path
 from typing import Any
 
 from common_process import is_pid_running, read_pid, remove_pid, start_process, stop_pid, write_pid
@@ -13,6 +12,7 @@ from common_profile import (
     load_profile,
     resolve_runtime_path,
     state_paths,
+    validate_speculative_args,
 )
 
 RUNTIME = "swiftlm"
@@ -45,6 +45,8 @@ def build_swift_command(profile: dict[str, Any]) -> list[str]:
     args = profile.get("swiftServerArgs", {})
     if not isinstance(args, dict):
         args = {}
+
+    validate_speculative_args(args, "swiftlm")
 
     model = args.get("model") or _first_model_value(profile)
     if is_blank(model):
