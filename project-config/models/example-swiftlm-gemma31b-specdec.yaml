@@ -1,46 +1,27 @@
 runtime: swiftlm
 title: "Gemma 4 31B (SwiftLM Speculative)"
 provider: "openai"
-models:
-  - title: "Gemma 4 31B (SwiftLM Speculative)"
-    provider: "openai"
-    model: "mlx-community/gemma-4-31b-it-8bit"
-    apiBase: "http://127.0.0.1:5423/v1"
-    contextLength: 8192
-    completionOptions:
-      maxTokens: 2048
-      temperature: 0.7
-      topP: 1.0
-      presencePenalty: 0.0
-      frequencyPenalty: 0.0
-
-tabAutocompleteModel:
-  title: "Gemma 4 31B"
-  provider: "openai"
-  model: "mlx-community/gemma-4-31b-it-8bit"
-
-binary: "${SWIFT_BIN}"
+binary: "storage/runtimes/swiftlm/bin/SwiftLM"
 server:
-  host: "${SWIFT_HOST}"
-  port: "${SWIFT_PORT}"
-  baseUrl: "${SWIFT_BASE_URL}"
+  host: "127.0.0.1"
+  port: 5423
 
 swiftServerArgs:
-  model: "${SWIFT_MODEL}"
-  max-tokens: "${SWIFT_MAX_TOKENS}"
-  ctx-size: "${SWIFT_CTX_SIZE}"
-  temp: "${SWIFT_TEMP}"
-  top-p: "${SWIFT_TOP_P}"
-  top-k: "${SWIFT_TOP_K}"
-  min-p: "${SWIFT_MIN_P}"
-  repeat-penalty: "${SWIFT_REPEAT_PENALTY}"
-  parallel: "${SWIFT_PARALLEL}"
-  mem-limit: "${SWIFT_MEM_LIMIT}"
-  gpu-layers: "${SWIFT_GPU_LAYERS}"
-  prefill-size: "${SWIFT_PREFILL_SIZE}"
+  model: "mlx-community/gemma-4-31b-it-8bit"
+  max-tokens: 2048
+  ctx-size: ""
+  temp: 0.7
+  top-p: 1.0
+  top-k: ""
+  min-p: ""
+  repeat-penalty: 1.0
+  parallel: 1
+  mem-limit: ""
+  gpu-layers: "auto"
+  prefill-size: 512
   draft-model: "mlx-community/gemma-4-E2B-it-4bit"
   num-draft-tokens: 8
-  api-key: "${SWIFT_API_KEY}"
+  api-key: ""
   turbo-kv: true
   thinking: false
   vision: false
