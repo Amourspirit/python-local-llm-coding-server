@@ -9,7 +9,7 @@ server:
 swiftServerArgs:
   model: "mlx-community/Qwen3.5-35B-A3B-8bit"
   max-tokens: 4096 # Increased for large file refactors
-  ctx-size: 32768  # Crucial for multi-project context on 256GB RAM
+  ctx-size: 65536  # Crucial for multi-project context on 256GB RAM
   temp: 0
   top-p: 1.0
   top-k: 0
@@ -19,8 +19,8 @@ swiftServerArgs:
   mem-limit: ""
   gpu-layers: "auto"
   prefill-size: 1024
-  draft-model: "mlx-community/Qwen3.5-2B-8bit"
-  num-draft-tokens: 4 # High fidelity draft for complex logic
+  # draft-model: "mlx-community/Qwen3.5-2B-8bit"
+  # num-draft-tokens: 4 # High fidelity draft for complex logic
   api-key: ""
   turbo-kv: true   # Essential for 32k+ context management
   thinking: false  # Manual toggle only for architectural deep-dives[cite: 1]

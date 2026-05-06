@@ -1,0 +1,30 @@
+runtime: swiftlm
+title: "Qwen3.5-2B-8bit (Auto-Complete)"
+provider: "openai"
+binary: "storage/runtimes/swiftlm/bin/SwiftLM"
+server:
+  host: "127.0.0.1"
+  port: 5525
+
+swiftServerArgs:
+  model: "mlx-community/Qwen3.5-2B-8bit"
+  # Set to a smaller value; autocomplete should only generate a few lines at most
+  max-tokens: 128 
+  # Reduce for speed; autocomplete only needs the immediate file context
+  ctx-size: 4096  
+  temp: 0
+  top-p: 1.0
+  top-k: 0
+  min-p: ""
+  # Keep low or at 1.0; high penalties can break standard code syntax
+  repeat-penalty: 1.0 
+  parallel: 1      
+  mem-limit: ""
+  gpu-layers: "auto"
+  # Lower prefill size can sometimes reduce initial "jitter" on keystrokes
+  prefill-size: 512
+  api-key: ""
+  turbo-kv: true   
+  thinking: false  
+  vision: false
+  audio: false
