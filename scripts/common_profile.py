@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 from datetime import datetime
 from pathlib import Path
@@ -76,7 +77,12 @@ def parse_env_file(path: Path = ENV_FILE) -> dict[str, str]:
         and _ENV_CACHE_MTIME_NS == mtime_ns
         and _ENV_CACHE_VALUES is not None
     ):
-        return dict(_ENV_CACHE_VALUES)
+        merged = dict(_ENV_CACHE_VALUES)
+        for key in merged:
+            override = os.environ.get(key)
+            if override is not None:
+                merged[key] = override
+        return merged
 
     values = dotenv_values(resolved_path)
     env: dict[str, str] = {}
@@ -89,7 +95,13 @@ def parse_env_file(path: Path = ENV_FILE) -> dict[str, str]:
     _ENV_CACHE_MTIME_NS = mtime_ns
     _ENV_CACHE_VALUES = dict(env)
 
-    return dict(env)
+    merged = dict(env)
+    for key in merged:
+        override = os.environ.get(key)
+        if override is not None:
+            merged[key] = override
+
+    return merged
 
 
 def get_log_rotation_days(env: dict[str, str] | None = None) -> int:
