@@ -53,6 +53,23 @@ def start_process(command: list[str], log_path: Path) -> int:
     return process.pid
 
 
+def prepare_log_file_for_start(log_path: Path, rotation_days: int) -> None:
+    if rotation_days < 0:
+        return
+
+    if not log_path.exists():
+        return
+
+    if rotation_days == 0:
+        log_path.write_bytes(b"")
+        return
+
+    max_age_seconds = rotation_days * 24 * 60 * 60
+    file_age_seconds = time.time() - log_path.stat().st_mtime
+    if file_age_seconds >= max_age_seconds:
+        log_path.unlink()
+
+
 def stop_pid(pid: int, timeout_seconds: float = 8.0) -> bool:
     if not is_pid_running(pid):
         return False

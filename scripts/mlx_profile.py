@@ -4,8 +4,17 @@ import argparse
 import sys
 from typing import Any
 
-from common_process import is_pid_running, read_pid, remove_pid, start_process, stop_pid, write_pid
+from common_process import (
+    is_pid_running,
+    prepare_log_file_for_start,
+    read_pid,
+    remove_pid,
+    start_process,
+    stop_pid,
+    write_pid,
+)
 from common_profile import (
+    get_log_rotation_days,
     is_blank,
     is_truthy,
     list_profiles,
@@ -89,6 +98,7 @@ def build_mlx_command(profile: dict[str, Any]) -> list[str]:
 def cmd_start(profile_name: str) -> int:
     _, profile = load_profile(profile_name, expected_runtime=RUNTIME)
     pid_path, log_path = state_paths(RUNTIME, profile_name)
+    rotation_days = get_log_rotation_days()
 
     existing = read_pid(pid_path)
     if existing and is_pid_running(existing):
@@ -98,6 +108,7 @@ def cmd_start(profile_name: str) -> int:
     if existing and not is_pid_running(existing):
         remove_pid(pid_path)
 
+    prepare_log_file_for_start(log_path, rotation_days)
     command = build_mlx_command(profile)
     pid = start_process(command, log_path)
     write_pid(pid_path, pid)

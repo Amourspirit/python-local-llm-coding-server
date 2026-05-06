@@ -12,6 +12,8 @@ EXAMPLE_PROFILE_DIR = ROOT_DIR / "project-config" / "models"
 PID_DIR = ROOT_DIR / "storage" / "project-local-config" / "pids"
 ENV_FILE = ROOT_DIR / ".env"
 HF_CACHE_ROOT = Path.home() / ".cache" / "huggingface" / "hub"
+DEFAULT_LOG_ROTATION_DAYS = 5
+DEFAULT_LOG_PROFILE_PATH = "storage/logs/profiles"
 
 
 def ensure_runtime_dirs() -> None:
@@ -34,6 +36,37 @@ def parse_env_file(path: Path = ENV_FILE) -> dict[str, str]:
         env[key.strip()] = value.strip()
 
     return env
+
+
+def get_log_rotation_days(env: dict[str, str] | None = None) -> int:
+    values = env if env is not None else parse_env_file()
+    raw_value = values.get("LOG_ROTATION_DAYS", "").strip()
+    if not raw_value:
+        return DEFAULT_LOG_ROTATION_DAYS
+
+    try:
+        return int(raw_value)
+    except ValueError as exc:
+        raise ValueError(
+            "LOG_ROTATION_DAYS must be an integer in .env. "
+            "Use 0 to clear logs on next start, negative to disable cleanup, "
+            "or a positive number for retention days."
+        ) from exc
+
+
+def get_profile_log_dir(env: dict[str, str] | None = None) -> Path:
+    values = env if env is not None else parse_env_file()
+    configured = values.get("LOG_PROFILE_PATH", "").strip()
+    raw_path = configured or DEFAULT_LOG_PROFILE_PATH
+
+    candidate = Path(raw_path).expanduser()
+    if candidate.is_absolute():
+        log_dir = candidate
+    else:
+        log_dir = (ROOT_DIR / candidate).resolve()
+
+    log_dir.mkdir(parents=True, exist_ok=True)
+    return log_dir
 
 
 def _resolve_env_vars(value: str, env: dict[str, str]) -> str:
@@ -128,7 +161,7 @@ def state_paths(runtime: str, profile_name: str) -> tuple[Path, Path]:
     ensure_runtime_dirs()
     slug = slugify_profile(profile_name)
     pid_path = PID_DIR / f"{runtime}-{slug}.pid"
-    log_path = PID_DIR / f"{runtime}-{slug}.log"
+    log_path = get_profile_log_dir() / f"{runtime}-{slug}.log"
     return pid_path, log_path
 
 
