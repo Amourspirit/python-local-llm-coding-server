@@ -5,38 +5,91 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from dotenv import dotenv_values
 import yaml
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
-LOCAL_PROFILE_DIR = ROOT_DIR / "storage" / "project-local-config" / "profiles" / "models"
 EXAMPLE_PROFILE_DIR = ROOT_DIR / "project-config" / "models"
-PID_DIR = ROOT_DIR / "storage" / "project-local-config" / "pids"
 ENV_FILE = ROOT_DIR / ".env"
 HF_CACHE_ROOT = Path.home() / ".cache" / "huggingface" / "hub"
 DEFAULT_LOG_ROTATION_DAYS = 5
-DEFAULT_LOG_PROFILE_PATH = "storage/logs/profiles"
+DEFAULT_STORAGE_PATH = "storage"
+DEFAULT_LOG_PROFILE_PATH = "logs/profiles"
+
+_ENV_CACHE_PATH: Path | None = None
+_ENV_CACHE_MTIME_NS: int | None = None
+_ENV_CACHE_VALUES: dict[str, str] | None = None
+
+
+def clear_env_cache() -> None:
+    global _ENV_CACHE_PATH, _ENV_CACHE_MTIME_NS, _ENV_CACHE_VALUES
+    _ENV_CACHE_PATH = None
+    _ENV_CACHE_MTIME_NS = None
+    _ENV_CACHE_VALUES = None
+
+
+def get_storage_root(env: dict[str, str] | None = None) -> Path:
+    values = env if env is not None else parse_env_file()
+    configured = values.get("STORAGE_PATH", "").strip()
+    raw_path = configured or DEFAULT_STORAGE_PATH
+
+    candidate = Path(raw_path).expanduser()
+    if candidate.is_absolute():
+        storage_root = candidate
+    else:
+        storage_root = (ROOT_DIR / candidate).resolve()
+
+    storage_root.mkdir(parents=True, exist_ok=True)
+    return storage_root
+
+
+def get_local_profile_dir(env: dict[str, str] | None = None) -> Path:
+    path = get_storage_root(env) / "project-local-config" / "profiles" / "models"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def get_pid_dir(env: dict[str, str] | None = None) -> Path:
+    path = get_storage_root(env) / "project-local-config" / "pids"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
 
 
 def ensure_runtime_dirs() -> None:
-    LOCAL_PROFILE_DIR.mkdir(parents=True, exist_ok=True)
+    get_local_profile_dir()
     EXAMPLE_PROFILE_DIR.mkdir(parents=True, exist_ok=True)
-    PID_DIR.mkdir(parents=True, exist_ok=True)
+    get_pid_dir()
 
 
 def parse_env_file(path: Path = ENV_FILE) -> dict[str, str]:
-    if not path.exists():
+    global _ENV_CACHE_PATH, _ENV_CACHE_MTIME_NS, _ENV_CACHE_VALUES
+
+    resolved_path = path.resolve()
+    if not resolved_path.exists():
+        if _ENV_CACHE_PATH == resolved_path:
+            clear_env_cache()
         return {}
 
+    mtime_ns = resolved_path.stat().st_mtime_ns
+    if (
+        _ENV_CACHE_PATH == resolved_path
+        and _ENV_CACHE_MTIME_NS == mtime_ns
+        and _ENV_CACHE_VALUES is not None
+    ):
+        return dict(_ENV_CACHE_VALUES)
+
+    values = dotenv_values(resolved_path)
     env: dict[str, str] = {}
-    for raw_line in path.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith("#") or "=" not in line:
+    for key, value in values.items():
+        if key is None or value is None:
             continue
+        env[str(key)] = str(value)
 
-        key, value = line.split("=", 1)
-        env[key.strip()] = value.strip()
+    _ENV_CACHE_PATH = resolved_path
+    _ENV_CACHE_MTIME_NS = mtime_ns
+    _ENV_CACHE_VALUES = dict(env)
 
-    return env
+    return dict(env)
 
 
 def get_log_rotation_days(env: dict[str, str] | None = None) -> int:
@@ -58,13 +111,14 @@ def get_log_rotation_days(env: dict[str, str] | None = None) -> int:
 def get_profile_log_dir(env: dict[str, str] | None = None) -> Path:
     values = env if env is not None else parse_env_file()
     configured = values.get("LOG_PROFILE_PATH", "").strip()
-    raw_path = configured or DEFAULT_LOG_PROFILE_PATH
-
-    candidate = Path(raw_path).expanduser()
-    if candidate.is_absolute():
-        log_dir = candidate
+    if not configured:
+        log_dir = get_storage_root(values) / DEFAULT_LOG_PROFILE_PATH
     else:
-        log_dir = (ROOT_DIR / candidate).resolve()
+        candidate = Path(configured).expanduser()
+        if candidate.is_absolute():
+            log_dir = candidate
+        else:
+            log_dir = (ROOT_DIR / candidate).resolve()
 
     log_dir.mkdir(parents=True, exist_ok=True)
     return log_dir
@@ -93,25 +147,27 @@ def resolve_profile_values(obj: Any, env: dict[str, str]) -> Any:
 def _candidate_profile_paths(profile_name: str) -> list[Path]:
     candidate = Path(profile_name)
     candidates: list[Path] = []
+    local_profile_dir = get_local_profile_dir()
 
     if candidate.is_absolute():
         candidates.append(candidate)
     else:
-        candidates.append(LOCAL_PROFILE_DIR / candidate)
+        candidates.append(local_profile_dir / candidate)
         if candidate.suffix not in {".yaml", ".yml"}:
-            candidates.append(LOCAL_PROFILE_DIR / f"{profile_name}.yaml")
-            candidates.append(LOCAL_PROFILE_DIR / f"{profile_name}.yml")
+            candidates.append(local_profile_dir / f"{profile_name}.yaml")
+            candidates.append(local_profile_dir / f"{profile_name}.yml")
 
     return candidates
 
 
 def resolve_profile_path(profile_name: str) -> Path:
+    local_profile_dir = get_local_profile_dir()
     for candidate in _candidate_profile_paths(profile_name):
         if candidate.exists():
             return candidate
 
     raise FileNotFoundError(
-        f"Profile '{profile_name}' was not found in {LOCAL_PROFILE_DIR}."
+        f"Profile '{profile_name}' was not found in {local_profile_dir}."
     )
 
 
@@ -134,7 +190,7 @@ def load_profile(profile_name: str, expected_runtime: str | None = None) -> tupl
 
 def list_profiles(runtime: str | None = None) -> list[Path]:
     ensure_runtime_dirs()
-    paths = sorted(LOCAL_PROFILE_DIR.glob("*.y*ml"))
+    paths = sorted(get_local_profile_dir().glob("*.y*ml"))
 
     if runtime is None:
         return paths
@@ -173,7 +229,7 @@ def profile_new_log_path(runtime: str, profile_name: str) -> Path:
 
 def state_paths(runtime: str, profile_name: str) -> tuple[Path, Path]:
     ensure_runtime_dirs()
-    pid_path = PID_DIR / f"{profile_log_prefix(runtime, profile_name)}.pid"
+    pid_path = get_pid_dir() / f"{profile_log_prefix(runtime, profile_name)}.pid"
     log_path = profile_latest_log_path(runtime, profile_name)
     return pid_path, log_path
 

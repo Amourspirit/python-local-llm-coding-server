@@ -20,6 +20,7 @@ from common_profile import (
     is_truthy,
     list_profiles,
     load_profile,
+    parse_env_file,
     profile_log_prefix,
     profile_new_log_path,
     resolve_model_args,
@@ -43,7 +44,9 @@ def _first_model_value(profile: dict[str, Any]) -> str | None:
 
 
 def build_swift_command(profile: dict[str, Any]) -> list[str]:
-    binary = profile.get("binary") or "storage/runtimes/swiftlm/bin/SwiftLM"
+    env = parse_env_file()
+    default_binary = env.get("SWIFT_BIN", "").strip() or "storage/runtimes/swiftlm/bin/SwiftLM"
+    binary = profile.get("binary") or default_binary
     command = [resolve_runtime_path(str(binary))]
 
     server = profile.get("server", {})
