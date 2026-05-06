@@ -22,6 +22,7 @@ swiftServerArgs:
   draft-model: ""
   num-draft-tokens: ""
   api-key: ""
+  turbo-kv: false
   thinking: false
   vision: false
   audio: false

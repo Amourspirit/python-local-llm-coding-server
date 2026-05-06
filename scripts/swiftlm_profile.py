@@ -47,6 +47,12 @@ def build_swift_command(profile: dict[str, Any]) -> list[str]:
     if not isinstance(args, dict):
         args = {}
 
+    # Keep startup behavior stable even if profiles omit these keys.
+    if is_blank(args.get("parallel")):
+        args["parallel"] = 1
+    if "turbo-kv" not in args:
+        args["turbo-kv"] = False
+
     validate_speculative_args(args, "swiftlm")
     args = resolve_model_args(args, "swiftlm")
 
