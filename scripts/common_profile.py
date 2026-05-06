@@ -11,6 +11,7 @@ LOCAL_PROFILE_DIR = ROOT_DIR / "storage" / "project-local-config" / "profiles" /
 EXAMPLE_PROFILE_DIR = ROOT_DIR / "project-config" / "models"
 PID_DIR = ROOT_DIR / "storage" / "project-local-config" / "pids"
 ENV_FILE = ROOT_DIR / ".env"
+HF_CACHE_ROOT = Path.home() / ".cache" / "huggingface" / "hub"
 
 
 def ensure_runtime_dirs() -> None:
@@ -181,3 +182,67 @@ def validate_mlx_module(module_name: str) -> None:
         raise ValueError(
             "mlx profile module must be one of: mlx_vlm.server, mlx_lm.server."
         )
+
+
+def _normalize_hf_cache_repo_dir(model_ref: str) -> str:
+    ref = model_ref.strip().strip("/")
+    if ref.startswith("models--"):
+        return ref
+
+    if "/" in ref:
+        return "models--" + ref.replace("/", "--")
+
+    return "models--" + ref
+
+
+def _pick_latest_snapshot(snapshots_dir: Path) -> Path:
+    candidates = [p for p in snapshots_dir.iterdir() if p.is_dir()]
+    if not candidates:
+        raise FileNotFoundError(
+            f"No snapshots found in {snapshots_dir}. "
+            "Download the model first with `hf download <repo_id>`."
+        )
+
+    return max(candidates, key=lambda p: p.stat().st_mtime)
+
+
+def resolve_model_reference(value: str) -> str:
+    model_ref = value.strip()
+    if not model_ref:
+        return model_ref
+
+    expanded = Path(model_ref).expanduser()
+    if expanded.is_absolute():
+        return str(expanded)
+
+    local_candidate = (ROOT_DIR / expanded).resolve()
+    if expanded.exists() or local_candidate.exists():
+        return str(local_candidate)
+
+    repo_dir = _normalize_hf_cache_repo_dir(model_ref)
+    snapshots_dir = HF_CACHE_ROOT / repo_dir / "snapshots"
+    if not snapshots_dir.exists():
+        raise FileNotFoundError(
+            f"Model reference '{model_ref}' is not absolute and no local cache snapshots were found at {snapshots_dir}. "
+            "Download the model first with `hf download <repo_id>`."
+        )
+
+    snapshot = _pick_latest_snapshot(snapshots_dir)
+    return str(snapshot.resolve())
+
+
+def resolve_model_args(args: dict[str, Any], runtime_name: str) -> dict[str, Any]:
+    resolved = dict(args)
+    for key in ("model", "draft-model"):
+        value = resolved.get(key)
+        if is_blank(value):
+            continue
+
+        try:
+            resolved[key] = resolve_model_reference(str(value))
+        except FileNotFoundError as exc:
+            raise FileNotFoundError(
+                f"{runtime_name} profile could not resolve '{key}': {exc}"
+            ) from exc
+
+    return resolved

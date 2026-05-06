@@ -10,6 +10,7 @@ from common_profile import (
     is_truthy,
     list_profiles,
     load_profile,
+    resolve_model_args,
     state_paths,
     validate_mlx_module,
     validate_speculative_args,
@@ -52,6 +53,7 @@ def build_mlx_command(profile: dict[str, Any]) -> list[str]:
         args = {}
 
     validate_speculative_args(args, "mlx")
+    args = resolve_model_args(args, "mlx")
 
     model = args.get("model") or _first_model_value(profile)
     if is_blank(model):

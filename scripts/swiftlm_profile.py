@@ -10,6 +10,7 @@ from common_profile import (
     is_truthy,
     list_profiles,
     load_profile,
+    resolve_model_args,
     resolve_runtime_path,
     state_paths,
     validate_speculative_args,
@@ -47,6 +48,7 @@ def build_swift_command(profile: dict[str, Any]) -> list[str]:
         args = {}
 
     validate_speculative_args(args, "swiftlm")
+    args = resolve_model_args(args, "swiftlm")
 
     model = args.get("model") or _first_model_value(profile)
     if is_blank(model):
