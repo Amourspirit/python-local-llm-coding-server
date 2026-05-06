@@ -53,21 +53,34 @@ def start_process(command: list[str], log_path: Path) -> int:
     return process.pid
 
 
-def prepare_log_file_for_start(log_path: Path, rotation_days: int) -> None:
-    if rotation_days < 0:
+def prune_profile_logs(log_dir: Path, log_prefix: str, rotation_days: int) -> None:
+    if rotation_days <= 0:
         return
 
-    if not log_path.exists():
-        return
-
-    if rotation_days == 0:
-        log_path.write_bytes(b"")
+    if not log_dir.exists():
         return
 
     max_age_seconds = rotation_days * 24 * 60 * 60
-    file_age_seconds = time.time() - log_path.stat().st_mtime
-    if file_age_seconds >= max_age_seconds:
-        log_path.unlink()
+    now = time.time()
+    for path in log_dir.glob(f"{log_prefix}-*.log"):
+        if path.name.endswith("-latest.log"):
+            continue
+
+        file_age_seconds = now - path.stat().st_mtime
+        if file_age_seconds >= max_age_seconds:
+            path.unlink(missing_ok=True)
+
+
+def update_latest_log_link(latest_log_path: Path, current_log_path: Path) -> None:
+    if os.name == "nt":
+        return
+
+    latest_log_path.parent.mkdir(parents=True, exist_ok=True)
+    if latest_log_path.exists() or latest_log_path.is_symlink():
+        latest_log_path.unlink()
+
+    # Use relative target so moving the log directory keeps the link valid.
+    latest_log_path.symlink_to(current_log_path.name)
 
 
 def stop_pid(pid: int, timeout_seconds: float = 8.0) -> bool:

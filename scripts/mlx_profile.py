@@ -6,11 +6,12 @@ from typing import Any
 
 from common_process import (
     is_pid_running,
-    prepare_log_file_for_start,
+    prune_profile_logs,
     read_pid,
     remove_pid,
     start_process,
     stop_pid,
+    update_latest_log_link,
     write_pid,
 )
 from common_profile import (
@@ -19,6 +20,8 @@ from common_profile import (
     is_truthy,
     list_profiles,
     load_profile,
+    profile_log_prefix,
+    profile_new_log_path,
     resolve_model_args,
     state_paths,
     validate_mlx_module,
@@ -97,7 +100,7 @@ def build_mlx_command(profile: dict[str, Any]) -> list[str]:
 
 def cmd_start(profile_name: str) -> int:
     _, profile = load_profile(profile_name, expected_runtime=RUNTIME)
-    pid_path, log_path = state_paths(RUNTIME, profile_name)
+    pid_path, latest_log_path = state_paths(RUNTIME, profile_name)
     rotation_days = get_log_rotation_days()
 
     existing = read_pid(pid_path)
@@ -108,19 +111,25 @@ def cmd_start(profile_name: str) -> int:
     if existing and not is_pid_running(existing):
         remove_pid(pid_path)
 
-    prepare_log_file_for_start(log_path, rotation_days)
+    log_prefix = profile_log_prefix(RUNTIME, profile_name)
+    prune_profile_logs(latest_log_path.parent, log_prefix, rotation_days)
+
+    log_path = profile_new_log_path(RUNTIME, profile_name)
     command = build_mlx_command(profile)
     pid = start_process(command, log_path)
+    update_latest_log_link(latest_log_path, log_path)
     write_pid(pid_path, pid)
 
     print(f"started mlx_vlm profile '{profile_name}'")
     print(f"pid: {pid}")
     print(f"log: {log_path}")
+    if latest_log_path != log_path:
+        print(f"latest log: {latest_log_path}")
     return 0
 
 
 def cmd_status(profile_name: str) -> int:
-    pid_path, log_path = state_paths(RUNTIME, profile_name)
+    pid_path, latest_log_path = state_paths(RUNTIME, profile_name)
     pid = read_pid(pid_path)
 
     if not pid:
@@ -131,7 +140,7 @@ def cmd_status(profile_name: str) -> int:
     if is_pid_running(pid):
         print(f"mlx_vlm profile '{profile_name}' is running.")
         print(f"pid: {pid}")
-        print(f"log: {log_path}")
+        print(f"log: {latest_log_path}")
         return 0
 
     print(f"mlx_vlm profile '{profile_name}' has a stale pid file ({pid}).")

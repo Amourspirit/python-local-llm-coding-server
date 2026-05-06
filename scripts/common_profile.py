@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -49,7 +50,7 @@ def get_log_rotation_days(env: dict[str, str] | None = None) -> int:
     except ValueError as exc:
         raise ValueError(
             "LOG_ROTATION_DAYS must be an integer in .env. "
-            "Use 0 to clear logs on next start, negative to disable cleanup, "
+            "Use 0 or a negative number to keep logs forever, "
             "or a positive number for retention days."
         ) from exc
 
@@ -157,11 +158,23 @@ def slugify_profile(profile_name: str) -> str:
     return slug or "default"
 
 
+def profile_log_prefix(runtime: str, profile_name: str) -> str:
+    return f"{runtime}-{slugify_profile(profile_name)}"
+
+
+def profile_latest_log_path(runtime: str, profile_name: str) -> Path:
+    return get_profile_log_dir() / f"{profile_log_prefix(runtime, profile_name)}-latest.log"
+
+
+def profile_new_log_path(runtime: str, profile_name: str) -> Path:
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+    return get_profile_log_dir() / f"{profile_log_prefix(runtime, profile_name)}-{timestamp}.log"
+
+
 def state_paths(runtime: str, profile_name: str) -> tuple[Path, Path]:
     ensure_runtime_dirs()
-    slug = slugify_profile(profile_name)
-    pid_path = PID_DIR / f"{runtime}-{slug}.pid"
-    log_path = get_profile_log_dir() / f"{runtime}-{slug}.log"
+    pid_path = PID_DIR / f"{profile_log_prefix(runtime, profile_name)}.pid"
+    log_path = profile_latest_log_path(runtime, profile_name)
     return pid_path, log_path
 
 
