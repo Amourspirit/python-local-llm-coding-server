@@ -18,7 +18,7 @@ endef
 .PHONY: help \
 	swift-list swift-show swift-start swift-status swift-stop swift-restart \
 	mlx-list mlx-show mlx-start mlx-status mlx-stop mlx-restart \
-	dev-show dev-start dev-stop dev-restart
+	dev-show dev-status dev-start dev-stop dev-restart
 
 PROFILE ?=
 PYTHON ?= .venv/bin/python
@@ -41,7 +41,7 @@ help:
 	@echo "  make mlx-restart PROFILE=<profile_name>"
 	@echo ""
 	@echo "Dev Models commands (MODEL_MAIN_PROFILE + MODEL_DRAFT_PROFILE from .env):"
-	@echo "  make dev-show     -- show status of both profiles"
+	@echo "  make dev-status   -- show status of both profiles"
 	@echo "  make dev-start    -- start main, wait 5s, start draft"
 	@echo "  make dev-stop     -- stop draft, then stop main"
 	@echo "  make dev-restart  -- dev-stop then dev-start"
@@ -86,7 +86,7 @@ mlx-restart:
 DEV_MAIN_SCRIPT  := $(call runtime_script,$(MODEL_MAIN_PROFILE))
 DEV_DRAFT_SCRIPT := $(call runtime_script,$(MODEL_DRAFT_PROFILE))
 
-dev-show:
+dev-status:
 	@echo "=== Main Profile: $(MODEL_MAIN_PROFILE) ==="
 	$(PYTHON) $(DEV_MAIN_SCRIPT) status --profile $(MODEL_MAIN_PROFILE)
 	@echo ""
