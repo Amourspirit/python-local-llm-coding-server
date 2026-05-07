@@ -78,10 +78,8 @@ def parse_env_file(path: Path = ENV_FILE) -> dict[str, str]:
         and _ENV_CACHE_VALUES is not None
     ):
         merged = dict(_ENV_CACHE_VALUES)
-        for key in merged:
-            override = os.environ.get(key)
-            if override is not None:
-                merged[key] = override
+        for key, value in os.environ.items():
+            merged[key] = value
         return merged
 
     values = dotenv_values(resolved_path)
@@ -96,10 +94,8 @@ def parse_env_file(path: Path = ENV_FILE) -> dict[str, str]:
     _ENV_CACHE_VALUES = dict(env)
 
     merged = dict(env)
-    for key in merged:
-        override = os.environ.get(key)
-        if override is not None:
-            merged[key] = override
+    for key, value in os.environ.items():
+        merged[key] = value
 
     return merged
 
