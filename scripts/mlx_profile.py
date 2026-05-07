@@ -15,6 +15,7 @@ from common_process import (
     write_pid,
 )
 from common_profile import (
+    format_profile_endpoint,
     get_log_rotation_days,
     is_blank,
     is_truthy,
@@ -131,19 +132,31 @@ def cmd_start(profile_name: str) -> int:
 def cmd_status(profile_name: str) -> int:
     pid_path, latest_log_path = state_paths(RUNTIME, profile_name)
     pid = read_pid(pid_path)
+    endpoint = None
+    try:
+        _, profile = load_profile(profile_name, expected_runtime=RUNTIME)
+        endpoint = format_profile_endpoint(profile)
+    except Exception:
+        endpoint = None
 
     if not pid:
         print(f"mlx_vlm profile '{profile_name}' is not running.")
+        if endpoint:
+            print(f"endpoint: {endpoint}")
         print(f"expected pid file: {pid_path}")
         return 0
 
     if is_pid_running(pid):
         print(f"mlx_vlm profile '{profile_name}' is running.")
+        if endpoint:
+            print(f"endpoint: {endpoint}")
         print(f"pid: {pid}")
         print(f"log: {latest_log_path}")
         return 0
 
     print(f"mlx_vlm profile '{profile_name}' has a stale pid file ({pid}).")
+    if endpoint:
+        print(f"endpoint: {endpoint}")
     print(f"pid file: {pid_path}")
     return 1
 

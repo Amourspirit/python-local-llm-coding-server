@@ -246,6 +246,26 @@ def is_blank(value: Any) -> bool:
     return value is None or (isinstance(value, str) and value.strip() == "")
 
 
+def format_profile_endpoint(profile: dict[str, Any]) -> str | None:
+    server = profile.get("server")
+    if not isinstance(server, dict):
+        return None
+
+    host = server.get("host")
+    port = server.get("port")
+
+    host_str = "" if is_blank(host) else str(host).strip()
+    port_str = "" if is_blank(port) else str(port).strip()
+
+    if host_str and port_str:
+        return f"{host_str}:{port_str}"
+    if host_str:
+        return host_str
+    if port_str:
+        return f":{port_str}"
+    return None
+
+
 def is_truthy(value: Any) -> bool:
     if isinstance(value, bool):
         return value
