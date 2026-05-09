@@ -11,6 +11,16 @@ wheels/
 venv/
 .envrc
 
+# Testing
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.coverage
+*.log
+.pytest_cache/
+
 # Environment files
 .env
 !.env.example
