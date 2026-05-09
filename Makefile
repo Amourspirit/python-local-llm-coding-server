@@ -4,9 +4,6 @@ export
 ifndef MODEL_MAIN_PROFILE
 $(error MODEL_MAIN_PROFILE is not set in .env)
 endif
-ifndef MODEL_DRAFT_PROFILE
-$(error MODEL_DRAFT_PROFILE is not set in .env)
-endif
 
 define runtime_script
 $(shell runtime=$$(grep '^runtime:' storage/project-local-config/profiles/models/$(1).yaml 2>/dev/null | awk '{print $$2}' | tr -d '\r'); \
@@ -97,20 +94,32 @@ dev-status:
 	@echo "=== Main Profile: $(MODEL_MAIN_PROFILE) ==="
 	$(PYTHON) $(DEV_MAIN_SCRIPT) status --profile $(MODEL_MAIN_PROFILE)
 	@echo ""
+ifdef MODEL_DRAFT_PROFILE
 	@echo "=== Draft Profile: $(MODEL_DRAFT_PROFILE) ==="
 	$(PYTHON) $(DEV_DRAFT_SCRIPT) status --profile $(MODEL_DRAFT_PROFILE)
+else
+	@echo "MODEL_DRAFT_PROFILE not set, skipping draft status"
+endif
 
 dev-start:
 	@echo "Starting main profile: $(MODEL_MAIN_PROFILE)"
 	$(PYTHON) $(DEV_MAIN_SCRIPT) start --profile $(MODEL_MAIN_PROFILE)
+ifdef MODEL_DRAFT_PROFILE
 	@echo "Waiting 5 seconds before starting draft profile..."
 	@sleep 5
 	@echo "Starting draft profile: $(MODEL_DRAFT_PROFILE)"
 	$(PYTHON) $(DEV_DRAFT_SCRIPT) start --profile $(MODEL_DRAFT_PROFILE)
+else
+	@echo "MODEL_DRAFT_PROFILE not set, skipping draft start"
+endif
 
 dev-stop:
+ifdef MODEL_DRAFT_PROFILE
 	@echo "Stopping draft profile: $(MODEL_DRAFT_PROFILE)"
 	$(PYTHON) $(DEV_DRAFT_SCRIPT) stop --profile $(MODEL_DRAFT_PROFILE)
+else
+	@echo "MODEL_DRAFT_PROFILE not set, skipping draft stop"
+endif
 	@echo "Stopping main profile: $(MODEL_MAIN_PROFILE)"
 	$(PYTHON) $(DEV_MAIN_SCRIPT) stop --profile $(MODEL_MAIN_PROFILE)
 
