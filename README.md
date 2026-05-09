@@ -164,6 +164,14 @@ Run only integration tests:
 make test-integration
 ```
 
+Run tests with coverage output:
+
+```bash
+make test-cov
+```
+
+The coverage command uses a non-blocking baseline threshold (`--cov-fail-under=0`) so coverage is reported without failing the build while coverage goals are still being established.
+
 Pytest discovery and defaults are configured in `pyproject.toml`.
 
 ## Direct Script Usage

@@ -19,7 +19,7 @@ endef
 	swift-list swift-show swift-start swift-status swift-stop swift-restart \
 	mlx-list mlx-show mlx-start mlx-status mlx-stop mlx-restart \
 	dev-show dev-status dev-start dev-stop dev-restart \
-	test test-unit test-integration
+	test test-unit test-integration test-cov
 
 PROFILE ?=
 PYTHON ?= .venv/bin/python
@@ -51,6 +51,7 @@ help:
 	@echo "  make test"
 	@echo "  make test-unit"
 	@echo "  make test-integration"
+	@echo "  make test-cov"
 
 swift-list:
 	$(PYTHON) scripts/swiftlm_profile.py list
@@ -123,3 +124,6 @@ test-unit:
 
 test-integration:
 	$(PYTHON) -m pytest tests/integration -m integration
+
+test-cov:
+	$(PYTHON) -m pytest tests/ --cov=scripts --cov-report=term-missing --cov-fail-under=0
