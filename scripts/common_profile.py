@@ -20,6 +20,61 @@ DEFAULT_LOG_PROFILE_PATH = "logs/profiles"
 _ENV_CACHE_PATH: Path | None = None
 _ENV_CACHE_MTIME_NS: int | None = None
 _ENV_CACHE_VALUES: dict[str, str] | None = None
+_HF_CACHE_REPO_IDS: set[str] | None = None
+
+
+def _is_hf_model_id(value: str) -> bool:
+    # Accept canonical namespace/name identifiers used by Hugging Face repos.
+    return bool(
+        re.fullmatch(
+            r"[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._-]*", value.strip()
+        )
+    )
+
+
+def _load_hf_cached_repo_ids() -> set[str]:
+    global _HF_CACHE_REPO_IDS
+    if _HF_CACHE_REPO_IDS is not None:
+        return _HF_CACHE_REPO_IDS
+
+    repo_ids: set[str] = set()
+
+    try:
+        from huggingface_hub import scan_cache_dir
+    except Exception:
+        scan_cache_dir = None
+
+    if scan_cache_dir is not None:
+        try:
+            cache_info = scan_cache_dir()
+            repo_ids = {
+                repo.repo_id
+                for repo in cache_info.repos
+                if getattr(repo, "repo_id", None)
+            }
+        except Exception:
+            repo_ids = set()
+
+    if not repo_ids and HF_CACHE_ROOT.exists():
+        for repo_dir in HF_CACHE_ROOT.glob("models--*"):
+            if not repo_dir.is_dir():
+                continue
+            name = repo_dir.name
+            if not name.startswith("models--"):
+                continue
+            normalized = name[len("models--") :]
+            if "--" not in normalized:
+                continue
+            namespace, model = normalized.split("--", 1)
+            if namespace and model:
+                repo_ids.add(f"{namespace}/{model}")
+
+    _HF_CACHE_REPO_IDS = repo_ids
+    return repo_ids
+
+
+def _is_hf_model_cached(model_id: str) -> bool:
+    return model_id in _load_hf_cached_repo_ids()
 
 
 def clear_env_cache() -> None:
@@ -179,7 +234,9 @@ def resolve_profile_path(profile_name: str) -> Path:
     )
 
 
-def load_profile(profile_name: str, expected_runtime: str | None = None) -> tuple[Path, dict[str, Any]]:
+def load_profile(
+    profile_name: str, expected_runtime: str | None = None
+) -> tuple[Path, dict[str, Any]]:
     ensure_runtime_dirs()
     env = parse_env_file()
 
@@ -227,12 +284,18 @@ def profile_log_prefix(runtime: str, profile_name: str) -> str:
 
 
 def profile_latest_log_path(runtime: str, profile_name: str) -> Path:
-    return get_profile_log_dir() / f"{profile_log_prefix(runtime, profile_name)}-latest.log"
+    return (
+        get_profile_log_dir()
+        / f"{profile_log_prefix(runtime, profile_name)}-latest.log"
+    )
 
 
 def profile_new_log_path(runtime: str, profile_name: str) -> Path:
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
-    return get_profile_log_dir() / f"{profile_log_prefix(runtime, profile_name)}-{timestamp}.log"
+    return (
+        get_profile_log_dir()
+        / f"{profile_log_prefix(runtime, profile_name)}-{timestamp}.log"
+    )
 
 
 def state_paths(runtime: str, profile_name: str) -> tuple[Path, Path]:
@@ -314,28 +377,6 @@ def validate_mlx_module(module_name: str) -> None:
         )
 
 
-def _normalize_hf_cache_repo_dir(model_ref: str) -> str:
-    ref = model_ref.strip().strip("/")
-    if ref.startswith("models--"):
-        return ref
-
-    if "/" in ref:
-        return "models--" + ref.replace("/", "--")
-
-    return "models--" + ref
-
-
-def _pick_latest_snapshot(snapshots_dir: Path) -> Path:
-    candidates = [p for p in snapshots_dir.iterdir() if p.is_dir()]
-    if not candidates:
-        raise FileNotFoundError(
-            f"No snapshots found in {snapshots_dir}. "
-            "Download the model first with `hf download <repo_id>`."
-        )
-
-    return max(candidates, key=lambda p: p.stat().st_mtime)
-
-
 def resolve_model_reference(value: str) -> str:
     model_ref = value.strip()
     if not model_ref:
@@ -343,22 +384,26 @@ def resolve_model_reference(value: str) -> str:
 
     expanded = Path(model_ref).expanduser()
     if expanded.is_absolute():
+        if not expanded.exists():
+            raise FileNotFoundError(f"Absolute model path '{expanded}' does not exist.")
         return str(expanded)
 
     local_candidate = (ROOT_DIR / expanded).resolve()
-    if expanded.exists() or local_candidate.exists():
+    if local_candidate.exists():
         return str(local_candidate)
 
-    repo_dir = _normalize_hf_cache_repo_dir(model_ref)
-    snapshots_dir = HF_CACHE_ROOT / repo_dir / "snapshots"
-    if not snapshots_dir.exists():
+    if _is_hf_model_id(model_ref):
+        if _is_hf_model_cached(model_ref):
+            # Keep HF model IDs intact for runtimes that support org/name directly.
+            return model_ref
         raise FileNotFoundError(
-            f"Model reference '{model_ref}' is not absolute and no local cache snapshots were found at {snapshots_dir}. "
-            "Download the model first with `hf download <repo_id>`."
+            f"Hugging Face model '{model_ref}' is not present in the local cache. "
+            f"Download it first with `hf download {model_ref}`."
         )
 
-    snapshot = _pick_latest_snapshot(snapshots_dir)
-    return str(snapshot.resolve())
+    raise FileNotFoundError(
+        f"Relative model path '{model_ref}' does not exist under {ROOT_DIR}."
+    )
 
 
 def resolve_model_args(args: dict[str, Any], runtime_name: str) -> dict[str, Any]:

@@ -18,7 +18,8 @@ endef
 .PHONY: help \
 	swift-list swift-show swift-start swift-status swift-stop swift-restart \
 	mlx-list mlx-show mlx-start mlx-status mlx-stop mlx-restart \
-	dev-show dev-status dev-start dev-stop dev-restart
+	dev-show dev-status dev-start dev-stop dev-restart \
+	test test-unit test-integration
 
 PROFILE ?=
 PYTHON ?= .venv/bin/python
@@ -45,6 +46,11 @@ help:
 	@echo "  make dev-start    -- start main, wait 5s, start draft"
 	@echo "  make dev-stop     -- stop draft, then stop main"
 	@echo "  make dev-restart  -- dev-stop then dev-start"
+	@echo ""
+	@echo "Test commands:"
+	@echo "  make test"
+	@echo "  make test-unit"
+	@echo "  make test-integration"
 
 swift-list:
 	$(PYTHON) scripts/swiftlm_profile.py list
@@ -108,3 +114,12 @@ dev-stop:
 	$(PYTHON) $(DEV_MAIN_SCRIPT) stop --profile $(MODEL_MAIN_PROFILE)
 
 dev-restart: dev-stop dev-start
+
+test:
+	$(PYTHON) -m pytest tests/
+
+test-unit:
+	$(PYTHON) -m pytest tests/unit -m unit
+
+test-integration:
+	$(PYTHON) -m pytest tests/integration -m integration

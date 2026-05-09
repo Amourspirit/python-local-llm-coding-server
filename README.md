@@ -142,6 +142,30 @@ make dev-restart
 
 `make dev-start` starts `MODEL_MAIN_PROFILE`, waits five seconds, then starts `MODEL_DRAFT_PROFILE`. `make dev-stop` stops the draft profile first, then the main profile.
 
+## Testing
+
+The project uses `pytest` for unit and integration coverage.
+
+Run all tests:
+
+```bash
+make test
+```
+
+Run only unit tests:
+
+```bash
+make test-unit
+```
+
+Run only integration tests:
+
+```bash
+make test-integration
+```
+
+Pytest discovery and defaults are configured in `pyproject.toml`.
+
 ## Direct Script Usage
 
 The `make` targets call the runtime scripts directly. You can use the scripts when you want to avoid `Makefile` constraints or integrate the behavior elsewhere:

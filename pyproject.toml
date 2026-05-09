@@ -10,3 +10,18 @@ dependencies = [
     "python-dotenv>=1.2.1",
     "pyyaml>=6.0",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+markers = [
+    "unit: Fast isolated unit tests",
+    "integration: Integration tests with multiple modules",
+]
